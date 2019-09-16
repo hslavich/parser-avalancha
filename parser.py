@@ -2,7 +2,7 @@ from sly import Lexer, Parser
 import json
 
 class CalcLexer(Lexer):
-    tokens = { FUN, LOWERID, UPPERID, ARROW, COMMA, SIGNATURE, PRECONDITION, POSTCONDITION }
+    tokens = { FUN, LOWERID, UPPERID, ARROW, COMMA, SIGNATURE, PRECONDITION, POSTCONDITION, LPAREN, RPAREN, UNDERSCORE }
     ignore = ' \t'
 
     # Tokens
@@ -14,6 +14,9 @@ class CalcLexer(Lexer):
     SIGNATURE = r':'
     PRECONDITION = r'\?'
     POSTCONDITION = r'!'
+    LPAREN = r'\('
+    RPAREN = r'\)'
+    UNDERSCORE = r'_'
 
     # Ignored pattern
     ignore_newline = r'\n+'
@@ -49,43 +52,56 @@ class CalcParser(Parser):
     def declaracion(self, p):
         return ('fun', p.LOWERID, p.signatura)
 
-    @_('UPPERID ARROW UPPERID')
-    def regla(self, p):
-        return ('rule', p.UPPERID0, p.UPPERID1)
-
-    @_('SIGNATURE LOWERID precondicion')
+    @_('SIGNATURE listaparametros')
     def signatura(self, p):
-        return ('sig', p.LOWERID, p.precondicion)
+        return ('sig', p.listaparametros)
+    
+    @_('empty')
+    def listaparametros(self, p):
+        return ''
 
-    @_('PRECONDITION LOWERID postcondicion')
-    def precondicion(self, p):
-        return ('pre', p.LOWERID, p.postcondicion)
+    @_('listaParametrosNoVacia')
+    def listaparametros(self, p):
+        return (p.listaParametrosNoVacia)    
+    
+    @_('UNDERSCORE')
+    def listaParametrosNoVacia(self, p):
+        return ('_')
+    
+    @_('LOWERID')
+    def listaParametrosNoVacia(self, p):
+        return (p.LOWERID)
 
-    @_('POSTCONDITION LOWERID regla')
-    def postcondicion(self, p):
-        return ('post', p.LOWERID, p.regla)
+    # @_('listaParametrosNoVacia COMMA parametro')
+    # def listaParametrosNoVacia(self, p):
+    #     return ''
 
     @_('')
     def empty(self, p):
         return []
 
 if __name__ == '__main__':
+#     data = '''
+# -- esto es un comentario
+# fun length
+# : sadsdasdasdasd
+# ? blabla
+# ! asdasds
+#     Nil -> Zero
+# fun length2
+# : sig2
+# ? balasdasd
+# ! asdasdasdasdasdas    
+#     Nil2 -> Zero2
+# '''
     data = '''
--- esto es un comentario
-fun length
-: sadsdasdasdasd
-? blabla
-! asdasds
-    Nil -> Zero
-fun length2
-: sig2
-? balasdasd
-! asdasdasdasdasdas    
-    Nil2 -> Zero2
-'''
-    lexer = CalcLexer()
-    parser = CalcParser()
-    # for tok in lexer.tokenize(data):
-    #     print('type=%r, value=%r' % (tok.type, tok.value))
-    print(json.dumps(parser.parse(lexer.tokenize(data))))
-    # print(parser.parse(lexer.tokenize(data)))
+        fun foo4
+            : x -> x
+            x -> x
+    '''
+lexer = CalcLexer()
+parser = CalcParser()
+# for tok in lexer.tokenize(data):
+#     print('type=%r, value=%r' % (tok.type, tok.value))
+print(json.dumps(parser.parse(lexer.tokenize(data))))
+# print(parser.parse(lexer.tokenize(data)))
