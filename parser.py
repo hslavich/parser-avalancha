@@ -45,25 +45,37 @@ class CalcParser(Parser):
     def declaraciones(self, p):
         return []
     
-    @_('FUN LOWERID signatura')
+    @_('FUN LOWERID signatura precondicion postcondicion regla')
     def declaracion(self, p):
-        return ('fun', p.LOWERID, p.signatura)
+        return ('fun', p.LOWERID, p.signatura, p.precondicion, p.postcondicion, p.regla)
 
     @_('UPPERID ARROW UPPERID')
     def regla(self, p):
         return ('rule', p.UPPERID0, p.UPPERID1)
 
-    @_('SIGNATURE LOWERID precondicion')
+    @_('SIGNATURE LOWERID')
     def signatura(self, p):
-        return ('sig', p.LOWERID, p.precondicion)
+        return ('sig', p.LOWERID)
 
-    @_('PRECONDITION LOWERID postcondicion')
+    @_('empty')
+    def signatura(self, p):
+        return ('-' )        
+
+    @_('PRECONDITION LOWERID')
     def precondicion(self, p):
-        return ('pre', p.LOWERID, p.postcondicion)
+        return ('pre', p.LOWERID)
 
-    @_('POSTCONDITION LOWERID regla')
+    @_('empty')
+    def precondicion(self, p):
+        return ('true')        
+
+    @_('POSTCONDITION LOWERID')
     def postcondicion(self, p):
-        return ('post', p.LOWERID, p.regla)
+        return ('post', p.LOWERID)
+
+    @_('empty')
+    def postcondicion(self, p):
+        return ('true')
 
     @_('')
     def empty(self, p):
@@ -73,9 +85,6 @@ if __name__ == '__main__':
     data = '''
 -- esto es un comentario
 fun length
-: sadsdasdasdasd
-? blabla
-! asdasds
     Nil -> Zero
 fun length2
 : sig2
