@@ -87,31 +87,9 @@ class CalcParser(Parser):
 
     ##################################################################################################################
 
-    # @_('PRECONDITION formulaImpOrAndNeg')
-    # def precondicion(self, p):
-    #     return ('pre', p.formulaImpOrAndNeg)
-
-    # @_('empty')
-    # def precondicion(self, p):
-    #     return ('true')
-
-    # @_('formulaImpOrAndNeg IMP formulaOrAndNeg formulaOrAndNeg')
-    # def formulaImpOrAndNeg(self, p):
-    #     return (p.formulaImpOrAndNeg, ' imp ', p.formulaOrAndNeg, p.formulaOrAndNeg)
-
-    ################# BORRAR #################
-    # @_('PRECONDITION formulaAtomica')
-    # def precondicion(self, p):
-    #     return ('pre', [p.formulaAtomica])
-    
-    # @_('PRECONDITION formulaNeg')
-    # def precondicion(self, p):
-    #     return ('pre', [p.formulaNeg])
-
     @_('PRECONDITION formulaImpOrAndNeg')
     def precondicion(self, p):
         return ('pre', p.formulaImpOrAndNeg)
-    ##########################################
 
     @_('formulaAtomica')
     def formulaNeg(self, p):
@@ -152,7 +130,6 @@ class CalcParser(Parser):
     @_('empty')
     def formulaAndNeg(self, p):
         return []        
-    #####################################        
 
     @_('TRUE')
     def formulaAtomica(self, p):
@@ -165,8 +142,6 @@ class CalcParser(Parser):
     @_('LPAREN formulaImpOrAndNeg RPAREN')
     def formulaNeg(self, p):
         return p.formulaImpOrAndNeg
-        # return (p.formulaAndNeg[0], p.formulaAndNeg[1])
-        # return '(' + p.formulaNeg[0] + p.formulaNeg[1] + ')'
 
     @_('empty')
     def formulaAtomica(self, p):
