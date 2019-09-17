@@ -3,13 +3,11 @@ import sys
 import json
 
 class CalcLexer(Lexer):
-    tokens = { FUN, LOWERID, UPPERID, COMMA, ARROW, COLON, QUESTION, BANG, UNDERSCORE, LPAREN, RPAREN }
+    tokens = { FUN, LOWERID, UPPERID, COMMA, ARROW, COLON, QUESTION, BANG, UNDERSCORE, LPAREN, RPAREN, CHECK, TRUE, FALSE, IMP, AND, OR, NOT, EQ }
     ignore = ' \t'
 
     # Tokens
     FUN = r'fun'
-    LOWERID = r'[a-z][_a-zA-Z0-9]*'
-    UPPERID = r'[A-Z][_a-zA-Z0-9]*'
     ARROW = r'->'
     COMMA = r','
     COLON = r':'
@@ -18,6 +16,16 @@ class CalcLexer(Lexer):
     UNDERSCORE = r'_'
     LPAREN = r'\('
     RPAREN = r'\)'
+    CHECK = r'check'
+    TRUE = r'true'
+    FALSE = r'false'
+    IMP = r'imp'
+    AND = r'and'
+    OR = r'or'
+    NOT = r'not'
+    EQ = r'=='
+    LOWERID = r'[a-z][_a-zA-Z0-9]*'
+    UPPERID = r'[A-Z][_a-zA-Z0-9]*'
 
     # Ignored pattern
     ignore_newline = r'\n+'
@@ -34,12 +42,17 @@ class CalcLexer(Lexer):
 class CalcParser(Parser):
     # Get the token list from the lexer (required)
     tokens = CalcLexer.tokens
-
+    debugfile = 'parser.out'
     start = 'program'
 
-    @_('declaraciones')
+    precedence = (
+       ('left', COMMA),
+       ('left', ARROW)
+    )
+
+    @_('declaraciones chequeos')
     def program(self, p):
-        return ['program', p.declaraciones, []]
+        return ['program', p.declaraciones, p.chequeos]
     
     @_('')
     def empty(self, p):
@@ -70,9 +83,30 @@ class CalcParser(Parser):
     def precondicion(self, p):
         return ['pre', ['true']]
 
+    @_('QUESTION formulaImpOrAndNeg')
+    def precondicion(self, p):
+        return ['pre', p.formulaImpOrAndNeg]
+
     @_('empty')
     def postcondicion(self, p):
         return ['post', ['true']]
+    
+    @_('BANG formulaImpOrAndNeg')
+    def postcondicion(self, p):
+        return ['post', p.formulaImpOrAndNeg]
+
+    ##### CHEQUEOS #####
+    @_('chequeos chequeo')
+    def chequeos(self, p):
+        return p.chequeos + [p.chequeo]
+    
+    @_('empty')
+    def chequeos(self, p):
+        return []
+    
+    @_('CHECK formulaImpOrAndNeg')
+    def chequeo(self, p):
+        return ['check', p.formulaImpOrAndNeg]
 
     ###### PARAMETROS DE ASIGNATURAS ######
     @_('empty')
@@ -159,6 +193,59 @@ class CalcParser(Parser):
     @_('expresiones COMMA expresiones')
     def expresiones(self, p):
         return p.expresiones0 + p.expresiones1
+    
+    ##### FORMULAS LOGICAS #####
+    @_('formulaAtomica')
+    def formulaNeg(self, p):
+        return p.formulaAtomica
+
+    @_('NOT formulaNeg')
+    def formulaNeg(self, p):
+        return ['not', p.formulaNeg]
+
+    @_('formulaNeg')
+    def formulaAndNeg(self, p):
+        return p.formulaNeg
+
+    @_('formulaAndNeg AND formulaNeg')
+    def formulaAndNeg(self, p):
+        return ['and', p.formulaAndNeg, p.formulaNeg]
+
+    @_('formulaOrAndNeg OR formulaAndNeg')
+    def formulaOrAndNeg(self, p):
+        return ['or', p.formulaOrAndNeg, p.formulaAndNeg]
+
+    @_('formulaAndNeg')
+    def formulaOrAndNeg(self, p):
+        return p.formulaAndNeg
+
+    @_('formulaImpOrAndNeg IMP formulaOrAndNeg')
+    def formulaImpOrAndNeg(self, p):
+        return ['imp', p.formulaImpOrAndNeg, p.formulaOrAndNeg]
+
+    @_('formulaOrAndNeg')
+    def formulaImpOrAndNeg(self, p):
+        return p.formulaOrAndNeg
+
+    @_('TRUE')
+    def formulaAtomica(self, p):
+        return ['true']
+
+    @_('FALSE')
+    def formulaAtomica(self, p):
+        return ['false']
+    
+    @_('expresion')
+    def formulaAtomica(self, p):
+        return ['equal', p.expresion, ['cons', 'True', []]]
+    
+    @_('expresion EQ expresion')
+    def formulaAtomica(self, p):
+        return ['equal', p.expresion0, p.expresion1]
+
+    @_('LPAREN formulaImpOrAndNeg RPAREN')
+    def formulaNeg(self, p):
+        return p.formulaImpOrAndNeg
 
 if __name__ == '__main__':
     data = '''
