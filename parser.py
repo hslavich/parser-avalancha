@@ -207,21 +207,21 @@ class CalcParser(Parser):
     def formulaAndNeg(self, p):
         return p.formulaNeg
 
-    @_('formulaAndNeg AND formulaNeg')
+    @_('formulaNeg AND formulaAndNeg')
     def formulaAndNeg(self, p):
-        return ['and', p.formulaAndNeg, p.formulaNeg]
+        return ['and', p.formulaNeg, p.formulaAndNeg]
 
-    @_('formulaOrAndNeg OR formulaAndNeg')
+    @_('formulaAndNeg OR formulaOrAndNeg')
     def formulaOrAndNeg(self, p):
-        return ['or', p.formulaOrAndNeg, p.formulaAndNeg]
+        return ['or', p.formulaAndNeg, p.formulaOrAndNeg]
 
     @_('formulaAndNeg')
     def formulaOrAndNeg(self, p):
         return p.formulaAndNeg
 
-    @_('formulaImpOrAndNeg IMP formulaOrAndNeg')
+    @_('formulaOrAndNeg IMP formulaImpOrAndNeg')
     def formulaImpOrAndNeg(self, p):
-        return ['imp', p.formulaImpOrAndNeg, p.formulaOrAndNeg]
+        return ['imp', p.formulaOrAndNeg, p.formulaImpOrAndNeg]
 
     @_('formulaOrAndNeg')
     def formulaImpOrAndNeg(self, p):
