@@ -2,7 +2,7 @@ from sly import Lexer, Parser
 import sys
 import json
 
-class Declaracion () :
+class Signatura () :
     def evalSignatura(self, signatura, reglas) :
         if (len(reglas) > 0 and len(signatura[1]) == 0) :
             for i in range(0, self.getCantidadDeParametros(reglas[0])):
@@ -83,8 +83,8 @@ class CalcParser(Parser):
 
     @_('FUN LOWERID signatura precondicion postcondicion reglas')
     def declaracion(self, p):
-        dec = Declaracion()
-        return ['fun', p.LOWERID, dec.evalSignatura(p.signatura, p.reglas), p.precondicion, p.postcondicion, p.reglas]
+        sig = Signatura()
+        return ['fun', p.LOWERID, sig.evalSignatura(p.signatura, p.reglas), p.precondicion, p.postcondicion, p.reglas]
     
     @_('COLON parametros ARROW parametro')
     def signatura(self, p):
