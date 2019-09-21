@@ -3,10 +3,6 @@ import sys
 import json
 
 class Declaracion () :
-    def __init__(self, signatura, reglas):
-        self.sig = self.evalSignatura(signatura, reglas)
-        self.rules = reglas
-
     def evalSignatura(self, signatura, reglas) :
         if (len(reglas) > 0 and len(signatura[1]) == 0) :
             for i in range(0, self.getCantidadDeParametros(reglas[0])):
@@ -87,7 +83,7 @@ class CalcParser(Parser):
 
     @_('FUN LOWERID signatura precondicion postcondicion reglas')
     def declaracion(self, p):
-        dec = Declaracion(p.signatura, p.reglas)
+        dec = Declaracion()
         return ['fun', p.LOWERID, dec.evalSignatura(p.signatura, p.reglas), p.precondicion, p.postcondicion, p.reglas]
     
     @_('COLON parametros ARROW parametro')
