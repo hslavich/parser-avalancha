@@ -1,0 +1,7 @@
+
+-- Funciones (reglas)
+
+fun yy
+  True  , x -> x
+  False  -> False
+

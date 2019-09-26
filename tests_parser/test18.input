@@ -1,0 +1,4 @@
+fun 
+    f A(B(x, x), m), B(m) -> B
+fun 
+    s A(B(x, m), m), B(x) -> B
