@@ -1,6 +1,128 @@
 from sly import Lexer, Parser
 import sys
 import json
+import datetime
+
+class Funcion() :
+    nombrefuncion = ''
+    signatura = []
+    parametros = []
+
+    def __init__(self, nombre, signatura, parametros) :
+        self.nombrefuncion = nombre
+        self.signatura = signatura
+        self.parametros = parametros
+            
+    def nombreParametros(self) :
+        nombreParametros = []       
+        if any(self.parametros) :
+            for par in self.parametros :
+                if par[0] == 'pcons' :
+                    nombreParametros.append(par[1])
+                else : 
+                    nombreParametros.append('_')
+        return nombreParametros
+
+    def cantParam(self, nombre):
+        cant = 0
+        for param in self.parametros :
+            if (param[0] == 'pcons') and (param[1] == nombre) :
+                cant = cant + 1 
+        return cant
+
+    def validarSignatura(self) :
+        return True
+
+    def validarFuncion(self):
+        return self.validarParametros() ##and self.validarSignatura()
+            
+    def validarParametros(self) :      
+        if any(self.parametros) :  
+            variables = self.variablesEnParametros(self.parametros[0])
+            for v in variables :
+                if variables.count(v) > 1 :
+                    raise NameError('Variable repetida')       
+        ## Valida posibles problemas de aridad entre los patrones
+        return all(map(lambda p : not self.cantParam(p) > 1 , self.nombreParametros()))
+    
+    
+    def variablesEnParametros(self, parametro):
+        variables = []
+        print(parametro)
+        for p in parametro :
+            if p[0] == 'pvar' : 
+                # for var in p[1] :
+                    variables.append(p[1]) 
+            elif p[0] == 'pcons' and not any(p[2]) :
+                variables.append(p[1]) 
+            elif (p[0] == 'pcons' and any(p[2])) :
+                if any(variables) :
+                    ## Es necesario hacer una COPIA de la lista, python 
+                    ## pierde la referencia a la misma
+                    tmp_vars = variables[:]
+                    variables = tmp_vars + self.variablesEnParametros(p[2])
+                else :
+                    print('Entra aca')
+                    print(variables)
+                    variables = self.variablesEnParametros(p[2])
+        print(variables)
+        return variables
+                
+
+class Declaracion () :
+    ## Recibe como parametro el listado completo de declaraciones 
+    # para ejecutar validaciones sobre la gramatica generada ##
+    funciones = []
+    def __init__(self, declaraciones):
+        for dec in declaraciones :
+            patrones = []
+            for d in dec[5] :
+                patrones.append(d[1])
+            funcion = Funcion(dec[1], [dec[2], dec[3], dec[4]], patrones)
+            self.funciones.append(funcion)
+
+    def validarGramatica(self) :
+        if not self.validarNombreDeFunciones() :
+            raise NameError('Error de sintaxis: Nombre de funcion invalido')       
+        if not self.validarCantidadParametrosEnReglas() :
+            raise NameError('Error de sintaxis: Aridad de funciones invalido')       
+        if not self.validarFunciones() :
+            raise NameError('Error de sintaxis: Mismo nombre de parametros en una funcion')    
+    
+
+    def getReglas(declaracion) :
+        return declaracion[0]
+    
+    def cantFunciones(self, nombre) :
+        cant = 0
+        for f in self.funciones :
+            if f.nombrefuncion == nombre :
+                cant = cant + 1 
+        return cant
+
+    def validarCantidadParametrosEnReglas(self) : 
+        ## La funcion se encarga de validad que todas las funciones tengan la misma aridad
+        if any(self.funciones) and any(self.funciones[0].parametros) :
+            cant_base = len(self.funciones[0].parametros[0])
+            return all(map(lambda fun : self.evalparametros(fun.parametros, cant_base), self.funciones))
+        else : 
+            return True
+    
+    def evalparametros(self, patrones, cant_base) :
+        for p in patrones : 
+            if len(p) != cant_base :
+                return False
+        return True
+    def validarNombreDeFunciones(self) :
+        # Todos los nombres de funciones existen una UNICA vez, un nombre de funcion no puede repetirse
+        return all(map(lambda funcion : not (self.cantFunciones(funcion.nombrefuncion) > 1), self.funciones))
+
+    def validarFunciones(self) :
+        ok_funciones = []
+        for fun in self.funciones :
+            ok_funciones.append(fun.validarFuncion())
+        return all(ok_funciones)
+        
 
 class Signatura () :
     def evalSignatura(self, signatura, reglas) :
@@ -9,7 +131,7 @@ class Signatura () :
                 signatura[1].append("_")
         
         return signatura
-    
+
     def getCantidadDeParametros(self, regla) :
         return len(regla[1])
 
@@ -66,6 +188,10 @@ class CalcParser(Parser):
 
     @_('declaraciones chequeos')
     def program(self, p):
+        dec = Declaracion(p.declaraciones)
+        ## Se valida la gramatica generada, puede anularse todo tipo de validacion
+        ## tapando esta linea
+        dec.validarGramatica()
         return ['program', p.declaraciones, p.chequeos]
     
     @_('')
@@ -75,7 +201,8 @@ class CalcParser(Parser):
     ###### DECLARACION DE FUNCIONES ######
     @_('declaraciones declaracion')
     def declaraciones(self, p):
-        return p.declaraciones + [p.declaracion]
+        declaracion_completa = p.declaraciones + [p.declaracion]
+        return declaracion_completa
     
     @_('empty')
     def declaraciones(self, p):
@@ -264,16 +391,37 @@ class CalcParser(Parser):
 
 if __name__ == '__main__':
     data = '''
-
-
+        fun f A(B(x, x), m), B(m) -> B
 '''
+# Casos de falla 
+# Falla por problema de aridad
+# fun s A(x), A(y) -> B
+#               A(x) -> B
+
+# Falla por problema de variable repetida
+# fun f A(B(w, x), m), B(o) -> B
+
+# Falla por problema de nombres de funcion
+# fun f A(B(w, x), m), B(m) -> B
+# fun f A(B(w, x), m), B(n) -> B
+        
+
     # lexer = CalcLexer()
     # parser = CalcParser()
+    
     # for tok in lexer.tokenize(data):
-    #     print('type=%r, value=%r' % (tok.type, tok.value))
+    #      print('type=%r, value=%r' % (tok.type, tok.value))
     # print(parser.parse(lexer.tokenize(data)))
+    
     # json = json.dumps(parser.parse(lexer.tokenize(data)))
+    
     # print(json)
+
+
+    # lexer = CalcLexer()
+    # parser = CalcParser()
+    # json = json.dumps(parser.parse(lexer.tokenize(data)))
+
 
     try:
         filename = sys.argv[1]
