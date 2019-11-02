@@ -139,7 +139,7 @@ class Signatura () :
         return [self.sig]
 
 class CalcLexer(Lexer):
-    tokens = { FUN, LOWERID, UPPERID, COMMA, ARROW, COLON, QUESTION, BANG, UNDERSCORE, LPAREN, RPAREN, CHECK, TRUE, FALSE, IMP, AND, OR, NOT, EQ }
+    tokens = { FUN, LOWERID, UPPERID, COMMA, ARROW, COLON, QUESTION, BANG, UNDERSCORE, LPAREN, RPAREN, CHECK, TRUE, FALSE, IMP, AND, OR, NOT, EQ, PRINT }
     ignore = ' \t'
 
     # Tokens
@@ -160,6 +160,7 @@ class CalcLexer(Lexer):
     OR = r'or'
     NOT = r'not'
     EQ = r'=='
+    PRINT = r'print'
     LOWERID = r'[a-z][_a-zA-Z0-9]*'
     UPPERID = r'[A-Z][_a-zA-Z0-9]*'
 
@@ -249,6 +250,10 @@ class CalcParser(Parser):
     @_('CHECK formulaImpOrAndNeg')
     def chequeo(self, p):
         return ['check', p.formulaImpOrAndNeg]
+
+    @_('PRINT expresion')
+    def chequeo(self, p):
+        return ['print', p.expresion]        
 
     ###### PARAMETROS DE ASIGNATURAS ######
     @_('empty')
