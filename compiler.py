@@ -1,5 +1,7 @@
 import sys
 import json
+from string import Template
+
 
 class Fun():
     index = 0
@@ -13,7 +15,6 @@ class Fun():
         self.body = [Rule(rule) for rule in body]
         self.argsSize = len(sig[1])
         Fun.index = Fun.index + 1
-        Compiler.addOutput(self.prototype())
 
     def params(self):
         '''returns Term* x_0, Term* x_1, ..., Term* x_<n-1>'''
@@ -57,9 +58,8 @@ void post_{id}({0}, Term* res) {{
 '''.format(self.params(), id = self.id)
 
     def compile(self):
-        Compiler.addOutput(self.compileF())
-        Compiler.addOutput(self.compilePre())
-        Compiler.addOutput(self.compilePost())
+        return self.compileF() + self.compilePre() + self.compilePost()
+
 
 class Rule():
     def __init__(self, rule):
@@ -71,12 +71,13 @@ class Rule():
     def __repr__(self):
         return "{%r -> %r}" % (self.pattern, self.definition)
 
+
 class Compiler():
     output = ''
     ast = []
     funs = []
     cons = []
-    header = '''
+    template = Template('''
 #include <vector>
 #include <string>
 #include <iostream>
@@ -88,31 +89,35 @@ struct Term {
     vector<Term*> children;
     int refcnt;
 };
-'''
+
+//Estas funciones hay que hacerlas
+void incref(Term* t);
+void decref(Term* t);
+void printTerm(Term* t);
+void printTerm(Term* t);
+
+$prototypes
+$functions
+$checks
+$prints
+
+int main() {
+    $main
+    return 0;
+}
+''')
 
     @staticmethod
     def compile(data):
         Compiler.ast = json.loads(data)
-        Compiler.addOutput(Compiler.header)
         Compiler.loadFunctions()
-        Compiler.loadChecks()
-        Compiler.loadPrints()
-        [f.compile() for f in Compiler.funs]
+        d = dict(prototypes=Compiler.prototypes(), functions=Compiler.functions(), checks=Compiler.checks(), prints=Compiler.prints(), main=Compiler.main())
+        Compiler.output = Compiler.template.substitute(d)
 
     @staticmethod
     def loadFunctions():
         for f in Compiler.ast[1]:
             Compiler.funs.append(Fun(f[1], f[2], f[3], f[4], f[5]))
-
-    @staticmethod
-    def loadChecks():
-        # Compiler.ast[2]
-        pass
-
-    @staticmethod
-    def loadPrints():
-        # Compiler.ast[3]
-        pass
 
     @staticmethod
     def addTerm(rule):
@@ -122,8 +127,24 @@ struct Term {
             [Compiler.addTerm(p) for p in rule[2]]
 
     @staticmethod
-    def addOutput(output):
-        Compiler.output = Compiler.output + output
+    def prototypes():
+        return ''.join([f.prototype() for f in Compiler.funs])
+
+    @staticmethod
+    def functions():
+        return ''.join([f.compile() for f in Compiler.funs])
+
+    @staticmethod
+    def checks():
+        return ''
+
+    @staticmethod
+    def prints():
+        return ''
+
+    @staticmethod
+    def main():
+        return ''
 
 
 if __name__ == '__main__':
