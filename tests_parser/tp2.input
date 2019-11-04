@@ -1,0 +1,15 @@
+fun esNat
+  Zero -> True
+  Suc(n) -> esNat(n)
+  _ -> False
+
+fun esLista
+  Nil -> True
+  Cons(_, xs) -> esLista(xs)
+  _ -> False
+
+fun zip : xs, ys -> _
+  ? esLista(xs) and esLista(ys)
+  Nil , _ -> Nil
+  _ , Nil -> Nil
+  Cons(x, xs) , Cons(y, ys) -> Cons(Par(x, y), zip(xs, ys))
