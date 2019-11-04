@@ -3,24 +3,63 @@ import json
 
 class Fun():
     index = 0
+
     def __init__(self, name, sig, pre, post, body):
         self.ref = name
-        self.name = 'f_%d' % Fun.index
-        Fun.index = Fun.index + 1
+        self.id = Fun.index
         self.sig = sig
         self.pre = pre
         self.post = post
         self.body = [Rule(rule) for rule in body]
+        self.argsSize = len(sig[1])
+        Fun.index = Fun.index + 1
+        Compiler.addOutput(self.prototype())
 
     def params(self):
-        return ', '.join(["Term* x_%d" % i for i, x in enumerate(self.sig[1])])
+        '''returns Term* x_0, Term* x_1, ..., Term* x_<n-1>'''
+        return ', '.join(["Term* x_%d" % i for i in range(self.argsSize)])
+
+    def args(self):
+        '''returns x_0, x_1, ..., x_<n-1>'''
+        return ', '.join(["x_%d" % i for i in range(self.argsSize)])
+
+    def prototype(self):
+        return '''
+Term* f_{id}({0});
+void pre_{id}({0});
+void post_{id}({0}, Term* res);
+'''.format(self.params(), id = self.id)
+
+    def compileF(self):
+        return '''
+Term* f_{id}({0}) {{
+    pre_{id}({args});
+
+    //Aca falta todo lo de pattern matching
+
+    post_{id}({args}, res);
+    return res;
+}}
+'''.format(self.params(), id=self.id, args=self.args())
+
+    def compilePre(self):
+        return '''
+void pre_{id}({0}) {{
+    // Aca todo el codigo de la funcion precondicion
+}}
+'''.format(self.params(), id=self.id)
+
+    def compilePost(self):
+        return '''
+void post_{id}({0}, Term* res) {{
+    // Aca todo el codigo de la funcion postcondicion
+}}
+'''.format(self.params(), id = self.id)
 
     def compile(self):
-        return '''
-Term* %s(%s) {
-    %s
-}
-''' % (self.name, self.params(), self.body)
+        Compiler.addOutput(self.compileF())
+        Compiler.addOutput(self.compilePre())
+        Compiler.addOutput(self.compilePost())
 
 class Rule():
     def __init__(self, rule):
@@ -30,16 +69,14 @@ class Rule():
         Compiler.addTerm(self.definition)
 
     def __repr__(self):
-        return "{%s -> %s}" % (self.pattern.__str__(), self.definition.__str__())
+        return "{%r -> %r}" % (self.pattern, self.definition)
 
 class Compiler():
     output = ''
-    ast = ''
+    ast = []
     funs = []
     cons = []
-
-    def encabezado(self) :
-        output = '''
+    header = '''
 #include <vector>
 #include <string>
 #include <iostream>
@@ -52,38 +89,45 @@ struct Term {
     int refcnt;
 };
 '''
-        return output
 
-    def parseJSON(self):
-        try:
-            filename = sys.argv[1]
-            f = open(filename, 'r')
-            data = f.read()
-        except:
-            pass
-        self.ast = json.loads(data)
+    @staticmethod
+    def compile(data):
+        Compiler.ast = json.loads(data)
+        Compiler.addOutput(Compiler.header)
+        Compiler.loadFunctions()
+        Compiler.loadChecks()
+        Compiler.loadPrints()
+        [f.compile() for f in Compiler.funs]
 
-    def searchFunctions(self):
-        for f in self.ast[1]:
-            self.funs.append(Fun(f[1], f[2], f[3], f[4], f[5]))
+    @staticmethod
+    def loadFunctions():
+        for f in Compiler.ast[1]:
+            Compiler.funs.append(Fun(f[1], f[2], f[3], f[4], f[5]))
 
-    @classmethod
-    def addTerm(cls, rule):
-        # cls.addTerm(rule[2])
+    @staticmethod
+    def loadChecks():
+        # Compiler.ast[2]
+        pass
+
+    @staticmethod
+    def loadPrints():
+        # Compiler.ast[3]
+        pass
+
+    @staticmethod
+    def addTerm(rule):
         if rule[0] in ['pcons', 'cons']:
-            name = rule[1]
-            s = set(cls.cons)
-            s.add(rule[1])
-            cls.cons = list(s)
-            [cls.addTerm(p) for p in rule[2]]
+            if not (rule[1] in Compiler.cons):
+                Compiler.cons.append(rule[1])
+            [Compiler.addTerm(p) for p in rule[2]]
 
-    def searchTerms(self):
-        res = list(filter(lambda p: len(p) and p[0] == 'program', self.ast))
+    @staticmethod
+    def addOutput(output):
+        Compiler.output = Compiler.output + output
+
 
 if __name__ == '__main__':
-    compiler = Compiler()
-    archivo = open("prueba.txt", "w")
-    archivo.write(compiler.encabezado())
-    compiler.parseJSON()
-    compiler.searchFunctions()
-    for f in compiler.funs: print (f.compile())
+    filename = sys.argv[1]
+    f = open(filename, 'r')
+    Compiler.compile(f.read())
+    print(Compiler.output)
