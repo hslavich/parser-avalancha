@@ -18,6 +18,9 @@ class Rule():
 
 
 class Pattern():
+    def __repr__(self):
+        return str(self.pattern)
+
     def __init__(self, pattern, index, parent=None):
         self.pattern = pattern
         self.parent = parent
@@ -28,10 +31,16 @@ class Pattern():
             self.children = [Pattern(p, i, self) for i, p in enumerate(pattern[2])]
 
     def compile(self):
-        if self.type == 'pcons':
-            childs = [c.compile() for c in self.children if c.type == 'pcons']
+        if (self.type == 'pcons'):
+            childs = [c.compile() for c in self.children if (c.type == 'pcons')]
             var = ['%s->tag == %s' % (self.var(), self.tag)] + childs
             return ' && '.join(var)
+        #REVISAR ESTO ------------------------------------------
+        if(self.type == 'pvar'):
+            return self.pattern[1] + '_' + str(self.index) + '->tag == 1'
+        if(self.type == 'pwild'):
+            return 'true'            
+        #-------------------------------------------------------    
         return ''
 
     def var(self):
@@ -48,5 +57,6 @@ class Expression():
     def compile(self):
         return '''
         //TODO
+        return %s
         //{0!r}
-'''.format(self.expr)
+'''.format(self.expr) % (self.expr[1])

@@ -87,3 +87,5 @@ if __name__ == '__main__':
     f = open(filename, 'r')
     Compiler.compile(f.read())
     print(Compiler.output)
+    archivo = open("cplusplus.cpp", "w")
+    archivo.write(Compiler.output)
