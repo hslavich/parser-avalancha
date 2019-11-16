@@ -8,13 +8,19 @@ class Fun():
 
     def __init__(self, name, sig, pre, post, body):
         self.ref = name
+        self.tIndex = 0
         self.id = Fun.index
         self.sig = sig
         self.pre = Precondition(pre, self)
         self.post = Postcondition(post, self)
-        self.body = [Rule(rule) for rule in body]
+        self.body = [Rule(rule, self) for rule in body]
         self.argsSize = len(sig[1])
         Fun.index = Fun.index + 1
+
+    def getNewVar(self):
+        var = 't_%d' % self.tIndex
+        self.tIndex = self.tIndex + 1
+        return var
 
     def params(self):
         '''returns Term* x_0, Term* x_1, ..., Term* x_<n-1>'''

@@ -1,9 +1,10 @@
 from compiler import Compiler
 
 class Rule():
-    def __init__(self, rule):
+    def __init__(self, rule, fun):
         [Compiler.addTerm(p) for p in rule[1]]
         Compiler.addTerm(rule[2])
+        self.fun = fun
         self.vars = {}
         self.patterns = [Pattern(p, self, i) for i, p in enumerate(rule[1])]
         self.expr = Expression(rule[2], self)
@@ -14,7 +15,8 @@ class Rule():
 
     def compile(self):
         return '''
-    if ({cond}) {{ {expr}    }}
+    if ({cond}) {{ {expr}
+    }}
 '''.format(cond=self.conditions(), expr=self.expr.compile())
 
 
@@ -54,35 +56,43 @@ class Pattern():
 
 
 class Expression():
-    def __init__(self, expr, rule):
+    def __init__(self, expr, rule, parent=None):
         self.type = expr[0]
         self.expr = expr
         self.rule = rule
+        self.var = rule.fun.getNewVar()
+        self.parent = parent
+        self.children = []
+        if self.type in ['cons', 'app']:
+            self.children = [Expression(e, rule, self) for e in self.expr[2]]
 
     def compile(self):
-        return '''
-        //TODO
-        %s
-        //{0!r}
-'''.format(self.rule.vars) % (self.evalExpresion())
-
-    def evalExpresion(self):
         if(self.type == 'cons'):
-            return '''
-        Term* t_n = new Term;
-        t_n->tag = {tag};
-        t_n->refcnt = 0;
-        addChildren(t_n, ...);
-    '''.format(tag=Compiler.getTag(self.expr[1]))
+            expr = '''
+        {children}
+        Term* {var} = new Term;
+        {var}->tag = {tag};
+        {var}->refcnt = 0;
+        {var}->children = [{child}];
+'''.format(var=self.var, child=', '.join([c.var for c in self.children]), tag=Compiler.getTag(self.expr[1]), children=''.join([c.compile() for c in self.children]))
 
         if(self.type == 'var'):
-            return '''
-        Term* t_n = {0}
-    '''.format(self.rule.vars[self.expr[1]])
+            expr = '''
+        Term* {var} = {0};
+'''.format(self.rule.vars[self.expr[1]], var=self.var)
             
         if(self.type == 'app'):
-            return '''
-        incref({arg});
-        Term* t_2 = {fun}({arg});
-        decref({arg});
-    '''.format(fun='f_22', arg='x_33')            
+            expr = '''
+        {children}
+        incref([{arg}]);
+        Term* {var} = f_{fun}({arg});
+        decref([{arg}]);
+'''.format(var=self.var, fun=self.rule.fun.id, arg=', '.join([c.var for c in self.children]), children=''.join([c.compile() for c in self.children]))
+
+        if self.parent is None:
+            expr = expr + '''
+        Term* res = {var};
+        post_{id}({args}, res);
+        return res;
+'''.format(var=self.var, id=self.rule.fun.id, args=self.rule.fun.args())
+        return expr
