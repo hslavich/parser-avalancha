@@ -20,8 +20,25 @@ struct Term {
     vector<Term*> children;
     int refcnt;
 };
-
+/*
 //Estas funciones hay que hacerlas
+void incref(Term* t){
+    t.refcnt = t->refcnt++;
+}
+
+void decref(Term* t) {
+    t.refcnt = t.refcnt;
+    if(t.refcnt == 0) {
+        cant_child = t.children.size()
+        for(int i = 0; i < cant_child; i++)
+        {
+            t.children[i].decref();
+        }
+        delete t;
+    }
+}
+*/
+
 void incref(Term* t);
 void decref(Term* t);
 void printTerm(Term* t);

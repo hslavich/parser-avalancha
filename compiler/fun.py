@@ -42,6 +42,8 @@ void post_{id}({0}, Term* res);
 Term* f_{id}({0}) {{
     pre_{id}({args});
     {body}
+    Term* res = new Term;
+    res->tag = 1;
     post_{id}({args}, res);
     return res;
 }}

@@ -73,7 +73,8 @@ class Expression():
         Term* {var} = new Term;
         {var}->tag = {tag};
         {var}->refcnt = 0;
-        {var}->children = [{child}];
+        std::vector<Term*> c_{var} {{ {child} }}; 
+        {var}->children = c_{var};
 '''.format(var=self.var, child=', '.join([c.var for c in self.children]), tag=Compiler.getTag(self.expr[1]), children=''.join([c.compile() for c in self.children]))
 
         if(self.type == 'var'):
@@ -84,9 +85,9 @@ class Expression():
         if(self.type == 'app'):
             expr = '''
         {children}
-        incref([{arg}]);
+        //incref([{arg}]);
         Term* {var} = f_{fun}({arg});
-        decref([{arg}]);
+        //decref([{arg}]);
 '''.format(var=self.var, fun=self.rule.fun.id, arg=', '.join([c.var for c in self.children]), children=''.join([c.compile() for c in self.children]))
 
         if self.parent is None:
