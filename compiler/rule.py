@@ -1,4 +1,3 @@
-import pdb
 import compiler
 import cons
 
@@ -14,7 +13,6 @@ class Rule():
         return cond if cond else 'true'
 
     def compile(self):
-        # pdb.set_trace()
         return '''
     if ({cond}) {{ {expr}
     }}
@@ -100,7 +98,7 @@ class Expression():
         {incref}
         Term* {var} = f_{fun}({arg});
         {decref}
-'''.format(var=self.var, fun=1, arg=', '.join([c.var for c in self.children]), incref=self.callForTerms('incref'), decref=self.callForTerms('decref'), children=''.join([c.compile() for c in self.children]))
+'''.format(var=self.var, fun=cons.funs[self.expr[1]], arg=', '.join([c.var for c in self.children]), incref=self.callForTerms('incref'), decref=self.callForTerms('decref'), children=''.join([c.compile() for c in self.children]))
 
     def callForTerms(self, function):
         return ' '.join(['%s(%s);' % (function, c.var) for c in self.children])

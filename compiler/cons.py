@@ -11,3 +11,5 @@ def getNewVar():
     var = 't_%d' % varIndex
     varIndex = varIndex + 1
     return var
+
+funs = {}

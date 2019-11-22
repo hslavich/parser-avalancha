@@ -1,4 +1,5 @@
 import rule
+import cons
 from precondition import Precondition
 from postcondition import Postcondition
 
@@ -15,6 +16,7 @@ class Fun():
         self.body = [rule.Rule(r, self) for r in body]
         self.argsSize = len(sig[1])
         Fun.index = Fun.index + 1
+        cons.funs[name] = self.id
 
     def params(self, res=False):
         '''returns Term* x_0, Term* x_1, ..., Term* x_<n-1>'''
