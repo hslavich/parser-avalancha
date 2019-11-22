@@ -28,10 +28,8 @@ void incref(Term* t) {
 }
 
 void decref(Term* t) {
-    t->refcnt = t->refcnt;
     if (t->refcnt == 0) {
-        int cant_child = t->children.size();
-        for(int i = 0; i < cant_child; i++) {
+        for(int i = 0; i < t->children.size(); i++) {
             decref(t->children[i]);
         }
         delete t;
@@ -61,7 +59,6 @@ int main() {
 
     @staticmethod
     def compile(data):
-        # pdb.set_trace()
         Compiler.ast = json.loads(data)
         Compiler.loadFunctions()
         f = Compiler.functions()
@@ -83,7 +80,12 @@ int main() {
         {0}
         default: c = "";
     }}
-    cout << c << endl;
+    cout << c;
+    for(int i = 0; i < t->children.size(); i++) {{
+        cout << "(";
+        printTerm(t->children[i]);
+        cout << ")";
+    }}
 '''.format('\n\t'.join(c))
 
     @staticmethod
@@ -111,7 +113,7 @@ int main() {
         // %r''' % print[1]
             main += expression.compile()
             main += '''
-        printTerm(%s);''' % expression.var
+        printTerm(%s); cout << endl;''' % expression.var
         return main
 
 
