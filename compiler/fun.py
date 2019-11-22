@@ -22,20 +22,24 @@ class Fun():
         self.tIndex = self.tIndex + 1
         return var
 
-    def params(self):
+    def params(self, res=False):
         '''returns Term* x_0, Term* x_1, ..., Term* x_<n-1>'''
-        return ', '.join(["Term* x_%d" % i for i in range(self.argsSize)])
+        params = ["Term* x_%d" % i for i in range(self.argsSize)]
+        if res: params.append('Term* res')
+        return ', '.join(params)
 
-    def args(self):
+    def args(self, res=False):
         '''returns x_0, x_1, ..., x_<n-1>'''
-        return ', '.join(["x_%d" % i for i in range(self.argsSize)])
+        args = ["x_%d" % i for i in range(self.argsSize)]
+        if res: args.append('res')
+        return ', '.join(args)
 
     def prototype(self):
         return '''
 Term* f_{id}({0});
 void pre_{id}({0});
-void post_{id}({0}, Term* res);
-'''.format(self.params(), id = self.id)
+void post_{id}({1});
+'''.format(self.params(), self.params(True), id = self.id)
 
     def compileFun(self):
         return '''
@@ -44,10 +48,11 @@ Term* f_{id}({0}) {{
     {body}
     Term* res = new Term;
     res->tag = 1;
-    post_{id}({args}, res);
+    res->refcnt = 0;
+    post_{id}({1});
     return res;
 }}
-'''.format(self.params(), id=self.id, args=self.args(), body=''.join([r.compile() for r in self.body]))
+'''.format(self.params(), self.args(True), id=self.id, args=self.args(), body=''.join([r.compile() for r in self.body]))
 
     def compile(self):
         return self.compileFun() + self.pre.compile() + self.post.compile()

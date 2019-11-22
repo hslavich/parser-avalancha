@@ -5,7 +5,7 @@ class Postcondition():
 
     def compile(self):
         return '''
-void post_{id}({0}, Term* res) {{
-    // TODO: postcondicion
+void post_{id}({0}) {{
+    // {post!r}
 }}
-'''.format(self.fun.params(), id = self.fun.id)
+'''.format(self.fun.params(True), id = self.fun.id, post=self.post)

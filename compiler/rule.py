@@ -41,12 +41,8 @@ class Pattern():
             childs = [c.compile() for c in self.children if (c.type == 'pcons')]
             var = ['%s->tag == %s' % (self.var(), self.tag)] + childs
             return ' && '.join(var)
-        #REVISAR ESTO ------------------------------------------
-        if(self.type == 'pvar'):
-            return self.pattern[1] + '_' + str(self.index) + '->tag == 1'
-        if(self.type == 'pwild'):
+        if (self.type in ['pvar', 'pwild']):
             return 'true'            
-        #-------------------------------------------------------    
         return ''
 
     def var(self):
@@ -67,33 +63,43 @@ class Expression():
             self.children = [Expression(e, rule, self) for e in self.expr[2]]
 
     def compile(self):
-        if(self.type == 'cons'):
-            expr = '''
-        {children}
-        Term* {var} = new Term;
-        {var}->tag = {tag};
-        {var}->refcnt = 0;
-        std::vector<Term*> c_{var} {{ {child} }}; 
-        {var}->children = c_{var};
-'''.format(var=self.var, child=', '.join([c.var for c in self.children]), tag=Compiler.getTag(self.expr[1]), children=''.join([c.compile() for c in self.children]))
-
-        if(self.type == 'var'):
-            expr = '''
-        Term* {var} = {0};
-'''.format(self.rule.vars[self.expr[1]], var=self.var)
-            
-        if(self.type == 'app'):
-            expr = '''
-        {children}
-        //incref([{arg}]);
-        Term* {var} = f_{fun}({arg});
-        //decref([{arg}]);
-'''.format(var=self.var, fun=self.rule.fun.id, arg=', '.join([c.var for c in self.children]), children=''.join([c.compile() for c in self.children]))
+        if (self.type == 'cons'):
+            expr = self.compileCons()
+        elif (self.type == 'var'):
+            expr = self.compileVar()
+        elif (self.type == 'app'):
+            expr = self.compileApp()
 
         if self.parent is None:
             expr = expr + '''
         Term* res = {var};
-        post_{id}({args}, res);
+        post_{id}({args});
         return res;
-'''.format(var=self.var, id=self.rule.fun.id, args=self.rule.fun.args())
+'''.format(var=self.var, id=self.rule.fun.id, args=self.rule.fun.args(True))
         return expr
+
+    def compileCons(self):
+        return '''
+        {children}
+        Term* {var} = new Term;
+        {var}->tag = {tag};
+        {var}->refcnt = 0;
+        vector<Term*> c_{var} {{{child}}}; 
+        {var}->children = c_{var};
+'''.format(var=self.var, child=', '.join([c.var for c in self.children]), tag=Compiler.getTag(self.expr[1]), children=''.join([c.compile() for c in self.children]))
+
+    def compileVar(self):
+        return '''
+        Term* {var} = {0};
+'''.format(self.rule.vars[self.expr[1]], var=self.var)
+
+    def compileApp(self):
+        return '''
+        {children}
+        {incref}
+        Term* {var} = f_{fun}({arg});
+        {decref}
+'''.format(var=self.var, fun=self.rule.fun.id, arg=', '.join([c.var for c in self.children]), incref=self.callForTerms('incref'), decref=self.callForTerms('decref'), children=''.join([c.compile() for c in self.children]))
+
+    def callForTerms(self, function):
+        return ' '.join(['%s(%s);' % (function, c.var) for c in self.children])

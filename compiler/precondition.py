@@ -6,6 +6,6 @@ class Precondition():
     def compile(self):
         return '''
 void pre_{id}({0}) {{
-    // TODO: precondicion
+    // {pre!r}
 }}
-'''.format(self.fun.params(), id = self.fun.id)
+'''.format(self.fun.params(), id = self.fun.id, pre=self.pre)
