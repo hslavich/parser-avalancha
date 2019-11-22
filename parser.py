@@ -153,6 +153,7 @@ class CalcLexer(Lexer):
     LPAREN = r'\('
     RPAREN = r'\)'
     CHECK = r'check'
+    PRINT = r'print'
     TRUE = r'true'
     FALSE = r'false'
     IMP = r'imp'
@@ -186,13 +187,13 @@ class CalcParser(Parser):
        ('left', ARROW)
     )
 
-    @_('declaraciones chequeos')
+    @_('declaraciones chequeos prints')
     def program(self, p):
         dec = Declaracion(p.declaraciones)
         ## Se valida la gramatica generada, puede anularse todo tipo de validacion
         ## tapando esta linea
         dec.validarGramatica()
-        return ['program', p.declaraciones, p.chequeos]
+        return ['program', p.declaraciones, p.chequeos, p.prints]
     
     @_('')
     def empty(self, p):
@@ -250,8 +251,17 @@ class CalcParser(Parser):
     def chequeo(self, p):
         return ['check', p.formulaImpOrAndNeg]
 
+    ##### PRINT #####
+    @_('prints prnt')
+    def prints(self, p):
+        return p.prints + [p.prnt]
+
+    @_('empty')
+    def prints(self, p):
+        return []
+
     @_('PRINT expresion')
-    def chequeo(self, p):
+    def prnt(self, p):
         return ['print', p.expresion]        
 
     ###### PARAMETROS DE ASIGNATURAS ######
