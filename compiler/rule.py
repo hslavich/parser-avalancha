@@ -1,9 +1,9 @@
-from compiler import Compiler
+import pdb
+import compiler
+import cons
 
 class Rule():
-    def __init__(self, rule, fun):
-        [Compiler.addTerm(p) for p in rule[1]]
-        Compiler.addTerm(rule[2])
+    def __init__(self, rule, fun):        
         self.fun = fun
         self.vars = {}
         self.patterns = [Pattern(p, self, i) for i, p in enumerate(rule[1])]
@@ -14,6 +14,7 @@ class Rule():
         return cond if cond else 'true'
 
     def compile(self):
+        # pdb.set_trace()
         return '''
     if ({cond}) {{ {expr}
     }}
@@ -31,7 +32,7 @@ class Pattern():
         self.index = index #orden de la variable x_1, ..., x_n
         self.type = pattern[0] #pvar | pcons | pwild
         if self.type == 'pcons':
-            self.tag = Compiler.getTag(pattern[1])
+            self.tag = compiler.Compiler.getTag(pattern[1])
             self.children = [Pattern(p, rule, i, self) for i, p in enumerate(pattern[2])]
         if self.type == 'pvar':
             self.rule.vars[pattern[1]] = self.var()
@@ -52,11 +53,11 @@ class Pattern():
 
 
 class Expression():
-    def __init__(self, expr, rule, parent=None):
+    def __init__(self, expr, rule=None, parent=None):
         self.type = expr[0]
         self.expr = expr
         self.rule = rule
-        self.var = rule.fun.getNewVar()
+        self.var = cons.getNewVar()
         self.parent = parent
         self.children = []
         if self.type in ['cons', 'app']:
@@ -70,7 +71,7 @@ class Expression():
         elif (self.type == 'app'):
             expr = self.compileApp()
 
-        if self.parent is None:
+        if (self.parent is None) and not (self.rule is None):
             expr = expr + '''
         Term* res = {var};
         post_{id}({args});
@@ -86,7 +87,7 @@ class Expression():
         {var}->refcnt = 0;
         vector<Term*> c_{var} {{{child}}}; 
         {var}->children = c_{var};
-'''.format(var=self.var, child=', '.join([c.var for c in self.children]), tag=Compiler.getTag(self.expr[1]), children=''.join([c.compile() for c in self.children]))
+'''.format(var=self.var, child=', '.join([c.var for c in self.children]), tag=compiler.Compiler.getTag(self.expr[1]), children=''.join([c.compile() for c in self.children]))
 
     def compileVar(self):
         return '''
@@ -99,7 +100,7 @@ class Expression():
         {incref}
         Term* {var} = f_{fun}({arg});
         {decref}
-'''.format(var=self.var, fun=self.rule.fun.id, arg=', '.join([c.var for c in self.children]), incref=self.callForTerms('incref'), decref=self.callForTerms('decref'), children=''.join([c.compile() for c in self.children]))
+'''.format(var=self.var, fun=1, arg=', '.join([c.var for c in self.children]), incref=self.callForTerms('incref'), decref=self.callForTerms('decref'), children=''.join([c.compile() for c in self.children]))
 
     def callForTerms(self, function):
         return ' '.join(['%s(%s);' % (function, c.var) for c in self.children])

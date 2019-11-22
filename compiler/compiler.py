@@ -1,13 +1,15 @@
 import sys
 import json
+import pdb
 from string import Template
 import fun
+import cons
+import rule
 
 class Compiler():
     output = ''
     ast = []
     funs = []
-    cons = ['True', 'False']
     template = Template('''
 #include <vector>
 #include <string>
@@ -20,34 +22,30 @@ struct Term {
     vector<Term*> children;
     int refcnt;
 };
-/*
-//Estas funciones hay que hacerlas
-void incref(Term* t){
-    t.refcnt = t->refcnt++;
+
+void incref(Term* t) {
+    t->refcnt = t->refcnt++;
 }
 
 void decref(Term* t) {
-    t.refcnt = t.refcnt;
-    if(t.refcnt == 0) {
-        cant_child = t.children.size()
-        for(int i = 0; i < cant_child; i++)
-        {
-            t.children[i].decref();
+    t->refcnt = t->refcnt;
+    if (t->refcnt == 0) {
+        int cant_child = t->children.size();
+        for(int i = 0; i < cant_child; i++) {
+            decref(t->children[i]);
         }
         delete t;
     }
 }
-*/
-
-void incref(Term* t);
-void decref(Term* t);
-void printTerm(Term* t);
-void printTerm(Term* t);
 
 $prototypes
 $functions
 $checks
-$prints
+
+void printTerm(Term* t) {
+    string c;
+    $print
+}
 
 int main() {
     $main
@@ -57,13 +55,19 @@ int main() {
 
     @staticmethod
     def getTag(constructor):
-        return Compiler.cons.index(constructor)
+        if not (constructor in cons.cons):
+            cons.addCons(constructor)
+        return cons.cons.index(constructor)
 
     @staticmethod
     def compile(data):
+        # pdb.set_trace()
         Compiler.ast = json.loads(data)
         Compiler.loadFunctions()
-        d = dict(prototypes=Compiler.prototypes(), functions=Compiler.functions(), checks=Compiler.checks(), prints=Compiler.prints(), main=Compiler.main())
+        f = Compiler.functions()
+        p = Compiler.prototypes()
+        d = dict(prototypes=p, functions=f, checks=Compiler.checks(), prints=Compiler.prints(), main=Compiler.main())
+        d['print'] = Compiler.compilePrint()
         Compiler.output = Compiler.template.substitute(d)
 
     @staticmethod
@@ -72,11 +76,15 @@ int main() {
             Compiler.funs.append(fun.Fun(f[1], f[2], f[3], f[4], f[5]))
 
     @staticmethod
-    def addTerm(rule):
-        if rule[0] in ['pcons', 'cons']:
-            if not (rule[1] in Compiler.cons):
-                Compiler.cons.append(rule[1])
-            [Compiler.addTerm(p) for p in rule[2]]
+    def compilePrint():
+        c = ['case %d: c = "%s"; break;' % (i, c) for i, c in enumerate(cons.cons)]
+        return '''
+    switch (t->tag) {{
+        {0}
+        default: c = "";
+    }}
+    cout << c << endl;
+'''.format('\n\t'.join(c))
 
     @staticmethod
     def prototypes():
@@ -96,7 +104,15 @@ int main() {
 
     @staticmethod
     def main():
-        return '//TODO: main'
+        main = ''
+        for print in Compiler.ast[3]:
+            expression = rule.Expression(print[1])
+            main += '''
+        // %r''' % print[1]
+            main += expression.compile()
+            main += '''
+        printTerm(%s);''' % expression.var
+        return main
 
 
 if __name__ == '__main__':
